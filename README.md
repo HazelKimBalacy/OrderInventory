@@ -74,12 +74,15 @@ With both servers running, open the app, open DevTools -> Network, and:
 
 - **Confirmed path:** pick `P100` (stock 25), quantity `1`, submit. Expect
   `200 OK` with `{"status":"CONFIRMED", "reason":null, "inventory":{...,"stock":24}}`.
+  <img width="975" height="548" alt="image" src="https://github.com/user-attachments/assets/ede82a3f-7aa9-46b7-867e-afca4f989f7f" />
+
 - **Rejected path:** pick `P300` (stock 0), any quantity, submit. Expect
   `200 OK` with `{"status":"REJECTED","reason":"Insufficient stock...", ...}`.
+  <img width="975" height="548" alt="image" src="https://github.com/user-attachments/assets/82f41f7f-d187-4782-a407-fae5b3a66d70" />
 
-### Network tab evidence
 
-_Add your screenshots here before submitting:_
+
+
 
 **Confirmed order:**
 
