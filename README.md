@@ -185,11 +185,11 @@ fires only once the order is durably committed.
 > click the request, and capture the **Headers** and **Response** panes.
 
 **(a) Multi-item order, all items succeed → CONFIRMED**
+<img width="1913" height="1079" alt="image" src="https://github.com/user-attachments/assets/06f25ea7-49e2-4d53-80a9-88e060a11bf4" />
+
 
 Cart: `P100 x2` + `P200 x1`. Expect `200 OK`, `status: CONFIRMED`, every item
 `RESERVED`, and both stock counts dropping in the inventory table.
-
-`(screenshot placeholder - POST /api/orders, CONFIRMED)`
 
 **(b) Multi-item order, one item fails → whole order REJECTED, nothing reserved**
 
@@ -198,15 +198,17 @@ Cart: `P100 x1` (fine) + `P300 x1` (stock 0). Expect `200 OK`,
 from before the request — that unchanged number is the actual proof of
 all-or-nothing.
 
-`(screenshot placeholder - POST /api/orders, REJECTED with P100 stock unchanged)`
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/c140ebf5-85d8-483f-b5cf-1014eaff76fc" />
+
 
 **(c) Cancel with restock reflected in GET /api/inventory**
 
 Place `P100 x3` (25 → 22), then hit Cancel on that order. Expect `200 OK`
 with `status: CANCELLED` and `outcome: RESTOCKED`, then a follow-up
 `GET /api/inventory` showing `P100` back at 25.
+<img width="1910" height="1079" alt="image" src="https://github.com/user-attachments/assets/9178470d-8aaf-4ec9-9ab1-61d639925a29" />
 
-`(screenshot placeholder - POST /api/orders/{id}/cancel + GET /api/inventory showing restored stock)`
+
 
 **(d) Notification feed: confirmed + rejected + low stock**
 
@@ -214,8 +216,9 @@ Order `P400 x2` (6 → 4, crosses the threshold of 5). Then
 `GET /api/notifications` shows an `ORDER_CONFIRMED` entry, a `LOW_STOCK`
 "reorder needed" entry, and — after running scenario (b) — an
 `ORDER_REJECTED` entry.
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/62a90520-aaec-4dbc-a66b-8b38598f709d" />
 
-`(screenshot placeholder - GET /api/notifications showing all three entry types)`
+
 
 ## 6. Reflection
 
