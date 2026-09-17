@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import jakarta.persistence.LockModeType;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -18,4 +19,7 @@ public interface InventoryRepository extends JpaRepository<InventoryItem, String
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<InventoryItem> findByProductId(String productId);
+
+    /** Unlocked read used by GET /api/inventory. */
+    List<InventoryItem> findAllByOrderByProductIdAsc();
 }

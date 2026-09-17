@@ -1,15 +1,10 @@
 package edu.cit.balacy.shop;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "orders")
@@ -19,12 +14,6 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "order_id")
     private Long orderId;
-
-    @Column(name = "product_id", nullable = false)
-    private String productId;
-
-    @Column(name = "quantity", nullable = false)
-    private int quantity;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -36,28 +25,29 @@ public class Order {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<OrderItem> items = new ArrayList<>();
+
     protected Order() {
         // required by JPA
     }
 
-    public Order(String productId, int quantity, OrderStatus status, String reason) {
-        this.productId = productId;
-        this.quantity = quantity;
+    Order(OrderStatus status, String reason) {
         this.status = status;
         this.reason = reason;
         this.createdAt = Instant.now();
     }
 
+    void addItem(String productId, int quantity) {
+        this.items.add(new OrderItem(this, productId, quantity));
+    }
+
+    void markCancelled() {
+        this.status = OrderStatus.CANCELLED;
+    }
+
     public Long getOrderId() {
         return orderId;
-    }
-
-    public String getProductId() {
-        return productId;
-    }
-
-    public int getQuantity() {
-        return quantity;
     }
 
     public OrderStatus getStatus() {
@@ -70,5 +60,9 @@ public class Order {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public List<OrderItem> getItems() {
+        return items;
     }
 }
