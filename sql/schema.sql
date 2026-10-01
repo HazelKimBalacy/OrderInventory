@@ -1,0 +1,120 @@
+-- Lab 2 schema. Run this once in the Supabase SQL Editor (or via psql)
+-- against your project's Postgres database before starting the Spring Boot
+-- app. The app connects with ddl-auto=validate, so it expects these tables
+-- (and these column names) to already exist.
+--
+-- This script recreates the current schema from scratch. It drops the Lab 1
+-- tables first because the `orders` table changed shape: product_id and
+-- quantity moved out to the new `order_items` table, since an order can now
+-- carry multiple line items. Re-running this is destructive - it resets all
+-- order history, notifications, and stock levels back to the seed values.
+
+drop table if exists supplier_orders;
+drop table if exists channel_stock_outbox;
+drop table if exists channel_processed_events;
+drop table if exists channel_orders;
+drop table if exists channel_state;
+drop table if exists order_items;
+drop table if exists notifications;
+drop table if exists orders;
+drop table if exists inventory;
+
+-- Inventory ---------------------------------------------------------------
+create table inventory (
+    product_id text primary key,
+    name       text    not null,
+    stock      integer not null check (stock >= 0)
+);
+
+-- Orders ------------------------------------------------------------------
+-- status now allows CANCELLED alongside CONFIRMED/REJECTED.
+create table orders (
+    order_id   bigint generated always as identity primary key,
+    status     text not null check (status in ('CONFIRMED', 'REJECTED', 'CANCELLED')),
+    reason     text,
+    created_at timestamptz not null default now()
+);
+
+-- Order line items --------------------------------------------------------
+-- One row per product in an order. Cascades on delete so removing an order
+-- never leaves orphaned lines behind.
+create table order_items (
+    order_item_id bigint generated always as identity primary key,
+    order_id      bigint  not null references orders (order_id) on delete cascade,
+    product_id    text    not null,
+    quantity      integer not null check (quantity > 0)
+);
+
+create index idx_order_items_order_id on order_items (order_id);
+
+-- Notifications -----------------------------------------------------------
+-- Written by the Notification module's @EventListener. The `type` column is
+-- an addition beyond the minimum columns: the lab requires low-stock entries
+-- to be distinguishable from order confirmation/rejection entries, and a
+-- typed column does that without the UI having to pattern-match message text.
+create table notifications (
+    notification_id bigint generated always as identity primary key,
+    type            text not null check (type in (
+                        'ORDER_CONFIRMED', 'ORDER_REJECTED', 'ORDER_CANCELLED', 'LOW_STOCK')),
+    message         text not null,
+    created_at      timestamptz not null default now()
+);
+
+create index idx_notifications_created_at on notifications (created_at desc);
+
+-- Seed data ---------------------------------------------------------------
+-- P400 starts at 6 so a single order of 2 pushes it under the low-stock
+-- threshold of 5, which makes the LowStock event easy to demo on purpose.
+insert into inventory (product_id, name, stock) values
+    ('P100', 'Wireless Mouse',      25),
+    ('P200', 'Mechanical Keyboard', 10),
+    ('P300', 'USB-C Hub',            0),
+    ('P400', 'Laptop Stand',         6);
+
+-- Supplier orders (Lab 3) -------------------------------------------------
+create table supplier_orders (
+    id          bigint generated always as identity primary key,
+    product_id  text    not null,
+    buyer_ref   text    unique,               -- "RO-" || id, set right after insert
+    request_id  text    not null unique,      -- X-Request-Id, fixed for the reorder's lifetime
+    po_number   text,
+    cases       integer not null check (cases > 0),
+    units       integer not null check (units > 0),
+    status      text    not null check (status in (
+                    'PENDING','SUBMITTED','IN_TRANSIT','DELIVERED','CANCELLED','FAILED','UNKNOWN')),
+    created_at  timestamptz not null default now(),
+    updated_at  timestamptz not null default now()
+);
+
+create index idx_supplier_orders_status on supplier_orders (status);
+
+-- Tiangge channel ---------------------------------------------------------
+create table channel_state (
+    id          integer primary key check (id = 1),
+    feed_cursor bigint not null
+);
+
+create table channel_processed_events (
+    event_id        text primary key,
+    sequence_number bigint not null
+);
+
+create index idx_channel_events_sequence on channel_processed_events (sequence_number);
+
+create table channel_orders (
+    tiangge_order_id   text primary key,
+    local_order_id     bigint not null,
+    lines_json         text not null,
+    decision           varchar(20) check (decision in ('ACCEPTED', 'REJECTED', 'BACKORDERED')),
+    reason             varchar(200),
+    decision_sent      boolean not null default false,
+    cancellation_pending boolean not null default false,
+    cancellation_sent  boolean not null default false,
+    resolution         varchar(20) check (resolution in ('ACCEPTED', 'CANCELLED')),
+    resolution_sent    boolean not null default false
+);
+
+create table channel_stock_outbox (
+    product_id text primary key,
+    available  integer not null check (available >= 0)
+);
