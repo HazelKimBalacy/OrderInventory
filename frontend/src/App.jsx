@@ -30,18 +30,25 @@ export default function App() {
   // Every order/cancel re-pulls all three views, so the dashboard always
   // reflects what the backend actually did rather than a guess.
   const refresh = useCallback(async () => {
-    try {
-      const [inv, ord, notes] = await Promise.all([
-        getInventory(),
-        getOrders(),
-        getNotifications(),
-      ])
-      setInventory(inv)
-      setOrders(ord)
-      setNotifications(notes)
-      if (inv.length && !selectedProduct) setSelectedProduct(inv[0].productId)
-    } catch (err) {
-      setError(err.message)
+    const [inventoryResult, ordersResult, notificationsResult] = await Promise.allSettled([
+      getInventory(),
+      getOrders(),
+      getNotifications(),
+    ])
+
+    if (inventoryResult.status === 'fulfilled') {
+      setInventory(inventoryResult.value)
+      if (inventoryResult.value.length && !selectedProduct) {
+        setSelectedProduct(inventoryResult.value[0].productId)
+      }
+    }
+    if (ordersResult.status === 'fulfilled') setOrders(ordersResult.value)
+    if (notificationsResult.status === 'fulfilled') setNotifications(notificationsResult.value)
+
+    const failedRequest = [inventoryResult, ordersResult, notificationsResult]
+      .find((request) => request.status === 'rejected')
+    if (failedRequest) {
+      setError(failedRequest.reason.message)
     }
   }, [selectedProduct])
 

@@ -12,7 +12,7 @@ async function request(path, options = {}) {
   // HTTP failures (404/409/400/500) land here.
   if (!res.ok) {
     const message = data?.message || `Request failed with status ${res.status}`
-    const error = new Error(message)
+    const error = new Error(`${path}: ${message}`)
     error.status = res.status
     throw error
   }

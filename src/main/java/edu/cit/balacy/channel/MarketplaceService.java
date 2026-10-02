@@ -281,10 +281,9 @@ class MarketplaceService implements MarketplaceChannel {
     @Override
     @Transactional
     public void publishStockChanged(String productId, int available) {
-        int currentAvailable = inventoryService.getItem(productId).getStock();
         StockSyncRecord record = stockRepository.findById(productId)
-                .orElseGet(() -> new StockSyncRecord(productId, currentAvailable));
-        record.setAvailable(currentAvailable);
+                .orElseGet(() -> new StockSyncRecord(productId, available));
+        record.setAvailable(available);
         stockRepository.save(record);
     }
 

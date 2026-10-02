@@ -72,7 +72,11 @@ class ProductCatalog {
     void refreshFromSupplier() {
         List<LegacySupplyClient.CatalogItem> items = client.fetchCatalog();
         Map<String, Integer> live = new HashMap<>();
-        items.forEach(i -> live.put(i.sku(), i.packSize()));
+        items.forEach(item -> {
+            live.put(item.sku(), item.packSize());
+            log.info("LegacySupply catalog item: SupplierSku={}, Description='{}', PackSize={}",
+                    item.sku(), item.description(), item.packSize());
+        });
         livePackSizes = live;
 
         configured.forEach((productId, cfg) -> {

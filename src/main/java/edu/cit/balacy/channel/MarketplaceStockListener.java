@@ -14,7 +14,7 @@ class MarketplaceStockListener {
         this.channel = channel;
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT, fallbackExecution = true)
     void on(InventoryStockChangedEvent event) {
         channel.publishStockChanged(event.productId(), event.available());
     }
